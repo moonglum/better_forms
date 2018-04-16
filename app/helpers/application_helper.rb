@@ -6,11 +6,11 @@ module ApplicationHelper
       # TODO: Display errors
 
       # Fields
+      # TODO: Move parts of this to a custom FormBuilder
       form_object.fields.each do |field|
         output_buffer.concat(
           content_tag(:div, class: "field") do
-            form.label(field.fetch(:name))
-              .concat(form.public_send(field.fetch(:type), field.fetch(:name)))
+            form.label(field.name) + form.public_send(field.type, field.name)
           end
         )
       end

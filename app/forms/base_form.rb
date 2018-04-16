@@ -9,34 +9,38 @@ class BaseForm
 
     def field(name, type)
       @fields ||= []
-      @fields.push(
-        name: name,
-        type: type
-      )
+      @fields.push(Field.new(name, type))
     end
 
-    def from(params)
-      model.new(clean_params(params))
+    def form_name
+      model.name.underscore.to_sym
     end
 
-    # TODO: form_name dependent on model?
-    def clean_params(params)
-      form_name = name.tableize.gsub(/_forms$/, "").singularize.to_sym
-      field_names = @fields.map { |field| field.fetch(:name) }
-      params.require(form_name).permit(*field_names)
+    def find(id)
+      new(model.find(id))
     end
   end
 
   attr_reader :model
 
-  delegate_missing_to :model
+  delegate :fields, :form_name, to: :class
+  delegate :errors, to: :model
+  alias to_model model
 
-  # TODO: Maybe this should behave like from
-  def initialize(model)
+  def initialize(model = self.class.model.new)
     @model = model
   end
 
-  def fields
-    self.class.fields
+  def update(params)
+    @model.update(clean_params(params))
   end
+
+  private
+
+  def clean_params(params)
+    field_names = fields.map(&:name)
+    params.require(form_name).permit(*field_names)
+  end
+
+  Field = Struct.new(:name, :type)
 end
