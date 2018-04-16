@@ -1,1 +1,1 @@
-<%= IdeasForm.new(idea, request_forgery_protection_token, form_authenticity_token).to_html(ideas_path) %>
+<%= better_form_for idea, local: true %>
