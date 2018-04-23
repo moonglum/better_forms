@@ -1,4 +1,6 @@
 class IdeasController < ApplicationController
+  before_action :set_idea_form, only: [:new, :edit, :create, :update]
+
   # GET /ideas
   # GET /ideas.json
   def index
@@ -13,19 +15,15 @@ class IdeasController < ApplicationController
 
   # GET /ideas/new
   def new
-    @idea = IdeasForm.new
   end
 
   # GET /ideas/1/edit
   def edit
-    @idea = IdeasForm.find(params[:id])
   end
 
   # POST /ideas
   # POST /ideas.json
   def create
-    @idea = IdeasForm.new
-
     respond_to do |format|
       if @idea.update(params)
         format.html { redirect_to @idea, notice: 'Idea was successfully created.' }
@@ -40,8 +38,6 @@ class IdeasController < ApplicationController
   # PATCH/PUT /ideas/1
   # PATCH/PUT /ideas/1.json
   def update
-    @idea = IdeasForm.find(params[:id])
-
     respond_to do |format|
       if @idea.update(params)
         format.html { redirect_to @idea, notice: 'Idea was successfully updated.' }
@@ -62,5 +58,15 @@ class IdeasController < ApplicationController
       format.html { redirect_to ideas_url, notice: 'Idea was successfully destroyed.' }
       format.json { head :no_content }
     end
+  end
+
+  private
+
+  def set_idea_form
+    @idea = if params.key? :id
+              IdeasForm.new(Idea.find(params[:id]))
+            else
+              IdeasForm.new
+            end
   end
 end
