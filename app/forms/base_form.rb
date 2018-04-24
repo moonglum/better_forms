@@ -1,4 +1,3 @@
-# TODO: Forms should also do validations
 class BaseForm
   class << self
     attr_reader :fields
@@ -11,7 +10,7 @@ class BaseForm
     def field(name, type, options = {})
       @fields ||= []
       field_class = type.to_s.camelize.constantize
-      delegate name, to: :model
+      attr_accessor name
       @fields.push(field_class.new(name, options))
     end
 
@@ -29,19 +28,35 @@ class BaseForm
   def initialize(model = self.class.model.new)
     @model = model
     @output_buffer = nil
+    assign_attributes(model.attributes.slice(*fields.map { |field| field.name.to_s }))
   end
 
   def update(params)
-    @model.update(clean_params(params))
+    assign_attributes(clean_params(params))
+    return false unless valid?
+    model.update(clean_params(params))
+
+    true
   end
 
   def to_html(form)
-    # TODO: Display errors
-    elements = fields.map { |field| field.to_html(form) } +
+    elements = errors_html +
+               fields.map { |field| field.to_html(form) } +
                [actions(form)]
 
-    elements.each_with_object(ActiveSupport::SafeBuffer.new) do |element, buffer|
-      buffer << element
+    array_to_safe_buffer(elements)
+  end
+
+  def errors_html
+    if errors.any?
+      [content_tag(:div, class: "error_explanation") do
+        content_tag(:h2, "Errors prohibited this item from being saved") +
+          content_tag(:ul) do
+            array_to_safe_buffer(errors.full_messages.map { |message| content_tag(:li, message) })
+          end
+      end]
+    else
+      []
     end
   end
 
@@ -62,9 +77,17 @@ class BaseForm
     field_names = fields.map(&:to_param)
     params.require(form_name).permit(*field_names)
   end
+
+  def array_to_safe_buffer(arr)
+    arr.each_with_object(ActiveSupport::SafeBuffer.new) do |element, buffer|
+      buffer << element
+    end
+  end
 end
 
 class FormField
+  attr_reader :name
+
   def initialize(name, options)
     @name = name
     @output_buffer = nil
@@ -79,7 +102,6 @@ class FormField
 
   include ActionView::Helpers::TagHelper
   attr_accessor :output_buffer
-  attr_reader :name
   attr_reader :options
 end
 
