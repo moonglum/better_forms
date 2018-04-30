@@ -2,6 +2,7 @@ class BaseForm
   class << self
     attr_reader :fields
 
+    # TODO: Should be possible to fill more than one model
     def model(klass = nil)
       return @model if klass.nil?
       @model = klass
@@ -24,6 +25,7 @@ class BaseForm
 
     private
 
+    # TODO: Add missing validations
     def parse_options(options)
       validations = {}
       validations[:presence] = true if options[:presence]
@@ -97,6 +99,7 @@ class BaseForm
   end
 end
 
+# TODO: Should also do sanitizing e.g. convert a NumberField value to an Integer
 class FormField
   attr_reader :name
 
