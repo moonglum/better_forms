@@ -11,11 +11,23 @@ class BaseForm
       @fields ||= []
       field_class = type.to_s.camelize.constantize
       attr_accessor name
-      @fields.push(field_class.new(name, options))
+
+      validations = parse_options(options)
+      validates name, validations unless validations.empty?
+
+      @fields.push(field_class.new(name, validations))
     end
 
     def form_name
       model.name.underscore.to_sym
+    end
+
+    private
+
+    def parse_options(options)
+      validations = {}
+      validations[:presence] = true if options[:presence]
+      validations
     end
   end
 
@@ -88,10 +100,10 @@ end
 class FormField
   attr_reader :name
 
-  def initialize(name, options)
+  def initialize(name, validations)
     @name = name
     @output_buffer = nil
-    @options = options
+    @options = validations_to_attributes(validations)
   end
 
   def to_param
@@ -99,6 +111,12 @@ class FormField
   end
 
   private
+
+  def validations_to_attributes(validations)
+    options = {}
+    options[:required] = true if validations[:presence]
+    options
+  end
 
   include ActionView::Helpers::TagHelper
   attr_accessor :output_buffer

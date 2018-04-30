@@ -1,9 +1,6 @@
 class IdeasForm < BaseForm
   model Idea
 
-  validates :title, presence: true
-
-  # TODO: The required flag should add the validation automatically
-  field :title, :text_field, required: true
+  field :title, :text_field, presence: true
   field :body, :text_area
 end
