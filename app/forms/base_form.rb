@@ -61,6 +61,23 @@ class BaseForm
     target.update(params)
   end
 
+  # Render the form (this is called by the render_form helper)
+  #
+  # You need to provide the name of the view you want to use as
+  # the layout for your form
+  def render(form, layout:)
+    ApplicationController.new.render_to_string(
+      "forms/#{layout}",
+      locals: {
+        errors: errors,
+        model_name: self.class.model_name,
+        form: form,
+        fields: fields.map { |field| field.to_html(form) }
+      },
+      layout: false
+    )
+  end
+
   # This is necessary for form_with
   # This is unfortunately named. It basically asks if the param should be used or not
   def persisted?
@@ -77,40 +94,11 @@ class BaseForm
     self
   end
 
-  # This converts our form to HTML (as a SafeBuffer)
-  def to_html(form)
-    merge_safe_buffers(
-      errors_html,
-      *fields.map { |field| field.to_html(form) },
-      actions_html(form)
-    )
-  end
-
   private
 
   def clean_params(params)
     fields.each_with_object({}) do |field, result|
       result[field.name] = field.transform(params[self.class.model_name.param_key])
-    end
-  end
-
-  def errors_html
-    ApplicationController.new.render_to_string(
-      partial: "fields/errors",
-      locals: { errors: errors, model_name: self.class.model_name }
-    )
-  end
-
-  def actions_html(form)
-    ApplicationController.new.render_to_string(
-      partial: "fields/actions",
-      locals: { form: form }
-    )
-  end
-
-  def merge_safe_buffers(*safe_buffers)
-    safe_buffers.each_with_object(ActiveSupport::SafeBuffer.new) do |safe_buffer, result|
-      result << safe_buffer
     end
   end
 end
@@ -132,7 +120,7 @@ class FormField
 
   def to_html(form)
     ApplicationController.new.render_to_string(
-      partial: "fields/#{self.class.name.underscore}",
+      partial: "forms/#{self.class.name.underscore}",
       locals: { form: form, name: name, options: options }
     )
   end

@@ -9,3 +9,13 @@
     </ul>
   </div>
 <% end %>
+
+<% fields.each do |field| %>
+  <div class="field">
+    <%= field %>
+  </div>
+<% end %>
+
+<div class="actions">
+  <%= form.submit %>
+</div>
