@@ -1,4 +1,4 @@
-class IdeasForm < BaseForm
+class IdeaForm < BaseForm
   model Idea
 
   field :title, :text_field, presence: true

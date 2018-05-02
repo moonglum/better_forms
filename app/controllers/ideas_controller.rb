@@ -64,9 +64,9 @@ class IdeasController < ApplicationController
 
   def set_idea_form
     @idea = if params.key? :id
-              IdeasForm.new(Idea.find(params[:id]))
+              IdeaForm.new(Idea.find(params[:id]))
             else
-              IdeasForm.new
+              IdeaForm.new
             end
   end
 end
