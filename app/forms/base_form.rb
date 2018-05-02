@@ -89,8 +89,9 @@ class BaseForm
   attr_accessor :output_buffer
 
   def clean_params(params)
-    field_names = fields.map(&:to_param)
-    params.require(form_name).permit(*field_names)
+    fields.each_with_object({}) do |field, result|
+      result[field.name] = field.transform(params[form_name])
+    end
   end
 
   def array_to_safe_buffer(arr)
@@ -100,7 +101,6 @@ class BaseForm
   end
 end
 
-# TODO: Should also do sanitizing e.g. convert a NumberField value to an Integer
 class FormField
   attr_reader :name
 
@@ -110,8 +110,10 @@ class FormField
     @options = validations_to_attributes(validations)
   end
 
-  def to_param
-    name
+  # Can be overwritten by child class for transforming to different type
+  # or to collect multiple fields into one value
+  def transform(params)
+    params[name]
   end
 
   def to_html(form)
