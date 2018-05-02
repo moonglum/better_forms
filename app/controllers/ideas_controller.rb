@@ -66,7 +66,7 @@ class IdeasController < ApplicationController
     @idea = if params.key? :id
               IdeaForm.new(Idea.find(params[:id]))
             else
-              IdeaForm.new
+              IdeaForm.new(Idea.new)
             end
   end
 end

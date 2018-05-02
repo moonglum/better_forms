@@ -5,12 +5,6 @@ class BaseForm
 
     delegate :param_key, to: :model_name
 
-    # TODO: Should be possible to fill more than one model
-    def model(klass = nil)
-      return @model if klass.nil?
-      @model = klass
-    end
-
     def field(name, type, options = {})
       @fields ||= []
       field_class = type.to_s.camelize.constantize
@@ -44,7 +38,8 @@ class BaseForm
   delegate :fields, :param_key, to: :class
   delegate :persisted?, :to_param, to: :model
 
-  def initialize(model = self.class.model.new)
+  # TODO: How can we fill more than one model?
+  def initialize(model)
     @model = model
     @output_buffer = nil
     assign_attributes(model.attributes.slice(*fields.map { |field| field.name.to_s }))
