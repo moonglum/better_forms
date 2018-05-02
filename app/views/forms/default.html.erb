@@ -12,7 +12,7 @@
 
 <% fields.each do |field| %>
   <div class="field">
-    <%= field %>
+    <%= render field, form: form, locals: { form: form } %>
   </div>
 <% end %>
 

@@ -74,7 +74,7 @@ class BaseForm
         errors: errors,
         model_name: self.class.model_name,
         form: form,
-        fields: fields.map { |field| field.to_html(form) }
+        fields: fields
       },
       layout: false
     )
@@ -120,11 +120,8 @@ class FormField
     params[name]
   end
 
-  def to_html(form)
-    ApplicationController.new.render_to_string(
-      partial: "forms/#{self.class.name.underscore}",
-      locals: { form: form, name: name, options: options }
-    )
+  def to_partial_path
+    "forms/#{self.class.name.underscore}"
   end
 
   private
