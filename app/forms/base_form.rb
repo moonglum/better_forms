@@ -1,3 +1,4 @@
+# TODO: Gem name idea "santana" – Santana::Form
 class BaseForm
   class << self
     attr_reader :fields
@@ -113,6 +114,13 @@ class FormField
     name
   end
 
+  def to_html(form)
+    ApplicationController.new.render_to_string(
+      partial: "fields/#{self.class.name.underscore}",
+      locals: { form: form, name: name, options: options }
+    )
+  end
+
   private
 
   def validations_to_attributes(validations)
@@ -126,19 +134,8 @@ class FormField
   attr_reader :options
 end
 
-# TODO: What is a simple way to adjust these fields to for example adhere to Bootstrap?
 class TextField < FormField
-  def to_html(form)
-    content_tag(:div, class: "field") do
-      form.label(name) + form.text_field(name, options)
-    end
-  end
 end
 
 class TextArea < FormField
-  def to_html(form)
-    content_tag(:div, class: "field") do
-      form.label(name) + form.text_area(name, options)
-    end
-  end
 end
