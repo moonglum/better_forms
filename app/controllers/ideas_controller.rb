@@ -1,5 +1,5 @@
 class IdeasController < ApplicationController
-  before_action :set_idea, only: [:show, :new, :edit, :create, :update]
+  before_action :set_idea, only: [:show, :edit, :update, :destroy]
   before_action :set_idea_form, only: [:new, :edit, :create, :update]
 
   # GET /ideas
@@ -19,13 +19,16 @@ class IdeasController < ApplicationController
 
   # GET /ideas/1/edit
   def edit
+    @idea_form.prefill_with(@idea.attributes)
   end
 
   # POST /ideas
   # POST /ideas.json
   def create
+    @idea = Idea.new
+
     respond_to do |format|
-      if @idea_form.update(params)
+      if @idea_form.apply(params, to: @idea)
         format.html { redirect_to @idea, notice: 'Idea was successfully created.' }
         format.json { render :show, status: :created, location: @idea }
       else
@@ -39,7 +42,7 @@ class IdeasController < ApplicationController
   # PATCH/PUT /ideas/1.json
   def update
     respond_to do |format|
-      if @idea_form.update(params)
+      if @idea_form.apply(params, to: @idea)
         format.html { redirect_to @idea, notice: 'Idea was successfully updated.' }
         format.json { render :show, status: :ok, location: @idea }
       else
@@ -52,8 +55,7 @@ class IdeasController < ApplicationController
   # DELETE /ideas/1
   # DELETE /ideas/1.json
   def destroy
-    Idea.find(params[:id]).destroy
-
+    @idea.destroy
     respond_to do |format|
       format.html { redirect_to ideas_url, notice: 'Idea was successfully destroyed.' }
       format.json { head :no_content }
@@ -63,10 +65,10 @@ class IdeasController < ApplicationController
   private
 
   def set_idea
-    @idea = params.key?(:id) ? Idea.find(params[:id]) : Idea.new
+    @idea = Idea.find(params[:id])
   end
 
   def set_idea_form
-    @idea_form = IdeaForm.new(@idea)
+    @idea_form = IdeaForm.new(param: params[:id])
   end
 end

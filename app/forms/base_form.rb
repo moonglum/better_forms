@@ -25,35 +25,65 @@ class BaseForm
   include ActiveModel::AttributeAssignment
   include ActiveModel::Validations
 
-  attr_reader :model
-
   delegate :fields, to: :class
-  delegate :persisted?, :to_param, to: :model
 
-  # TODO: How can we fill more than one model?
-  def initialize(model)
-    @model = model
-    assign_attributes(model.attributes.slice(*fields.map { |field| field.name.to_s }))
+  # Initialize the form, optionally providing a parameter for the form
+  #
+  # If you form is called FooForm, then the form will post to foo_path
+  # If you provide a param, it will post to foo_path(param)
+  def initialize(param: nil)
+    @param = param
   end
 
-  def update(params)
-    assign_attributes(clean_params(params))
+  # Prefill your form with a hash
+  #
+  # This is useful for update forms
+  def prefill_with(attributes)
+    assign_attributes(attributes.slice(*fields.map { |field| field.name.to_s }))
+  end
+
+  # Apply parameters to your target object or objects
+  #
+  # This will first clean the parameters and check their validity
+  # It will then call the update method, see below
+  def apply(dirty_params, to:)
+    params = clean_params(dirty_params)
+    assign_attributes(params)
     return false unless valid?
-    model.update(clean_params(params))
-
-    true
+    update(to, params)
   end
 
+  # Update the target object or objects
+  #
+  # In the default case, it will just call update on the target
+  # This can be overwritten if you want to update more than just one model
+  def update(target, params)
+    target.update(params)
+  end
+
+  # This is necessary for form_with
+  # This is unfortunately named. It basically asks if the param should be used or not
+  def persisted?
+    @param.present?
+  end
+
+  # This is necessary for form_with
+  def to_param
+    @param
+  end
+
+  # This is necessary for form_with
+  def to_model
+    self
+  end
+
+  # This converts our form to HTML (as a SafeBuffer)
   def to_html(form)
     merge_safe_buffers(
       errors_html,
       *fields.map { |field| field.to_html(form) },
       actions_html(form)
     )
-  end
-
-  def to_model
-    self
   end
 
   private
