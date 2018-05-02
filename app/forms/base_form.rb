@@ -3,6 +3,8 @@ class BaseForm
   class << self
     attr_reader :fields
 
+    delegate :param_key, to: :model_name
+
     # TODO: Should be possible to fill more than one model
     def model(klass = nil)
       return @model if klass.nil?
@@ -20,8 +22,8 @@ class BaseForm
       @fields.push(field_class.new(name, validations))
     end
 
-    def form_name
-      model.name.underscore.to_sym
+    def model_name
+      ActiveModel::Name.new(self, nil, name.gsub(/Form\z/, ""))
     end
 
     private
@@ -34,11 +36,13 @@ class BaseForm
     end
   end
 
+  include ActiveModel::AttributeAssignment
+  include ActiveModel::Validations
+
   attr_reader :model
 
-  delegate :fields, :form_name, to: :class
-  delegate :persisted?, to: :model
-  alias to_model model
+  delegate :fields, :param_key, to: :class
+  delegate :persisted?, :to_param, to: :model
 
   def initialize(model = self.class.model.new)
     @model = model
@@ -62,6 +66,7 @@ class BaseForm
     array_to_safe_buffer(elements)
   end
 
+  # TODO: Move to partial
   def errors_html
     if errors.any?
       [content_tag(:div, class: "error_explanation") do
@@ -75,22 +80,26 @@ class BaseForm
     end
   end
 
-  # Can be overwritten in child class
+  # TODO: Move to partial
   def actions(form)
     content_tag(:div, class: "actions") do
       form.submit
     end
   end
 
+  def to_model
+    self
+  end
+
   private
 
-  include ActiveModel::Model
+  # TODO: Can be removed when everything is moved to partials
   include ActionView::Helpers::TagHelper
   attr_accessor :output_buffer
 
   def clean_params(params)
     fields.each_with_object({}) do |field, result|
-      result[field.name] = field.transform(params[form_name])
+      result[field.name] = field.transform(params[param_key])
     end
   end
 
