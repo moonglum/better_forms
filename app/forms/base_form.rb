@@ -1,30 +1,24 @@
 # TODO: Gem name idea "santana" – Santana::Form
 class BaseForm
   class << self
+    # TODO: Add missing validations
+    VALIDATIONS = [:presence].freeze
+
     attr_reader :fields
 
     def field(name, type, options = {})
-      @fields ||= []
-      field_class = type.to_s.camelize.constantize
       attr_accessor name
 
-      validations = parse_options(options)
+      validations = options.slice(*VALIDATIONS)
       validates name, validations unless validations.empty?
 
-      @fields.push(field_class.new(name, validations))
+      @fields ||= []
+      field_class = type.to_s.camelize.constantize
+      @fields.push(field_class.new(name, validations, options.except(*VALIDATIONS)))
     end
 
     def model_name
       ActiveModel::Name.new(self, nil, name.gsub(/Form\z/, ""))
-    end
-
-    private
-
-    # TODO: Add missing validations
-    def parse_options(options)
-      validations = {}
-      validations[:presence] = true if options[:presence]
-      validations
     end
   end
 
@@ -95,9 +89,9 @@ class FormField
   attr_reader :name
   attr_reader :options
 
-  def initialize(name, validations)
+  def initialize(name, validations, options)
     @name = name
-    @options = validations_to_attributes(validations)
+    @options = options.merge(validations_to_attributes(validations))
   end
 
   # Can be overwritten by child class for transforming to different type
@@ -115,6 +109,7 @@ class FormField
 
   private
 
+  # TODO: Add missing validations
   def validations_to_attributes(validations)
     options = {}
     options[:required] = true if validations[:presence]
