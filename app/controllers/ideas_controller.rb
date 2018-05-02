@@ -1,4 +1,5 @@
 class IdeasController < ApplicationController
+  before_action :set_idea, only: [:show, :new, :edit, :create, :update]
   before_action :set_idea_form, only: [:new, :edit, :create, :update]
 
   # GET /ideas
@@ -10,7 +11,6 @@ class IdeasController < ApplicationController
   # GET /ideas/1
   # GET /ideas/1.json
   def show
-    @idea = Idea.find(params[:id])
   end
 
   # GET /ideas/new
@@ -25,12 +25,12 @@ class IdeasController < ApplicationController
   # POST /ideas.json
   def create
     respond_to do |format|
-      if @idea.update(params)
+      if @idea_form.update(params)
         format.html { redirect_to @idea, notice: 'Idea was successfully created.' }
         format.json { render :show, status: :created, location: @idea }
       else
         format.html { render :new }
-        format.json { render json: @idea.errors, status: :unprocessable_entity }
+        format.json { render json: @idea_form.errors, status: :unprocessable_entity }
       end
     end
   end
@@ -39,12 +39,12 @@ class IdeasController < ApplicationController
   # PATCH/PUT /ideas/1.json
   def update
     respond_to do |format|
-      if @idea.update(params)
+      if @idea_form.update(params)
         format.html { redirect_to @idea, notice: 'Idea was successfully updated.' }
         format.json { render :show, status: :ok, location: @idea }
       else
         format.html { render :edit }
-        format.json { render json: @idea.errors, status: :unprocessable_entity }
+        format.json { render json: @idea_form.errors, status: :unprocessable_entity }
       end
     end
   end
@@ -62,11 +62,11 @@ class IdeasController < ApplicationController
 
   private
 
+  def set_idea
+    @idea = params.key?(:id) ? Idea.find(params[:id]) : Idea.new
+  end
+
   def set_idea_form
-    @idea = if params.key? :id
-              IdeaForm.new(Idea.find(params[:id]))
-            else
-              IdeaForm.new(Idea.new)
-            end
+    @idea_form = IdeaForm.new(@idea)
   end
 end
