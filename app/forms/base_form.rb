@@ -3,8 +3,6 @@ class BaseForm
   class << self
     attr_reader :fields
 
-    delegate :param_key, to: :model_name
-
     def field(name, type, options = {})
       @fields ||= []
       field_class = type.to_s.camelize.constantize
@@ -35,13 +33,12 @@ class BaseForm
 
   attr_reader :model
 
-  delegate :fields, :param_key, to: :class
+  delegate :fields, to: :class
   delegate :persisted?, :to_param, to: :model
 
   # TODO: How can we fill more than one model?
   def initialize(model)
     @model = model
-    @output_buffer = nil
     assign_attributes(model.attributes.slice(*fields.map { |field| field.name.to_s }))
   end
 
@@ -54,32 +51,11 @@ class BaseForm
   end
 
   def to_html(form)
-    elements = errors_html +
-               fields.map { |field| field.to_html(form) } +
-               [actions(form)]
-
-    array_to_safe_buffer(elements)
-  end
-
-  # TODO: Move to partial
-  def errors_html
-    if errors.any?
-      [content_tag(:div, class: "error_explanation") do
-        content_tag(:h2, "Errors prohibited this item from being saved") +
-          content_tag(:ul) do
-            array_to_safe_buffer(errors.full_messages.map { |message| content_tag(:li, message) })
-          end
-      end]
-    else
-      []
-    end
-  end
-
-  # TODO: Move to partial
-  def actions(form)
-    content_tag(:div, class: "actions") do
-      form.submit
-    end
+    merge_safe_buffers(
+      errors_html,
+      *fields.map { |field| field.to_html(form) },
+      actions_html(form)
+    )
   end
 
   def to_model
@@ -88,29 +64,39 @@ class BaseForm
 
   private
 
-  # TODO: Can be removed when everything is moved to partials
-  include ActionView::Helpers::TagHelper
-  attr_accessor :output_buffer
-
   def clean_params(params)
     fields.each_with_object({}) do |field, result|
-      result[field.name] = field.transform(params[param_key])
+      result[field.name] = field.transform(params[self.class.model_name.param_key])
     end
   end
 
-  def array_to_safe_buffer(arr)
-    arr.each_with_object(ActiveSupport::SafeBuffer.new) do |element, buffer|
-      buffer << element
+  def errors_html
+    ApplicationController.new.render_to_string(
+      partial: "fields/errors",
+      locals: { errors: errors, model_name: self.class.model_name }
+    )
+  end
+
+  def actions_html(form)
+    ApplicationController.new.render_to_string(
+      partial: "fields/actions",
+      locals: { form: form }
+    )
+  end
+
+  def merge_safe_buffers(*safe_buffers)
+    safe_buffers.each_with_object(ActiveSupport::SafeBuffer.new) do |safe_buffer, result|
+      result << safe_buffer
     end
   end
 end
 
 class FormField
   attr_reader :name
+  attr_reader :options
 
   def initialize(name, validations)
     @name = name
-    @output_buffer = nil
     @options = validations_to_attributes(validations)
   end
 
@@ -134,10 +120,6 @@ class FormField
     options[:required] = true if validations[:presence]
     options
   end
-
-  include ActionView::Helpers::TagHelper
-  attr_accessor :output_buffer
-  attr_reader :options
 end
 
 class TextField < FormField
