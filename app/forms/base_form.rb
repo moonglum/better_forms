@@ -1,8 +1,10 @@
 # TODO: Gem name idea "santana" – Santana::Form
 class BaseForm
   class << self
-    # TODO: Add missing validations
-    VALIDATIONS = [:presence].freeze
+    # Validations that require database access are not available:
+    # * validates_associated
+    # * uniqueness
+    VALIDATIONS = %i[acceptance confirmation exclusion format inclusion length numericality presence absence validates_with].freeze
 
     attr_reader :fields
 
@@ -127,7 +129,8 @@ class FormField
 
   private
 
-  # TODO: Add missing validations
+  # TODO: Add missing validations:
+  # acceptance, confirmation, exclusion, format, inclusion, length, numericality, absence
   def validations_to_attributes(validations)
     options = {}
     options[:required] = true if validations[:presence]
