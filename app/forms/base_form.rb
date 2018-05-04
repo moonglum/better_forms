@@ -22,10 +22,15 @@ class BaseForm
     def model_name
       ActiveModel::Name.new(self, nil, name.gsub(/Form\z/, ""))
     end
+
+    def i18n_scope
+      :form
+    end
   end
 
   include ActiveModel::AttributeAssignment
   include ActiveModel::Validations
+  extend ActiveModel::Translation
 
   delegate :fields, to: :class
 
