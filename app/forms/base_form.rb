@@ -1,23 +1,16 @@
 # TODO: Gem name idea "santana" – Santana::Form
 class BaseForm
   class << self
-    # Validations that require database access are not available:
-    # * validates_associated
-    # * uniqueness
-    VALIDATIONS = %i[acceptance confirmation exclusion format inclusion length numericality presence absence validates_with].freeze
-
     attr_reader :fields
 
-    def field(name, type, options = {})
+    def field(name, type, validates: {}, html_options: {})
       attr_accessor name
 
-      # TODO: Or introduce this as validates: { ... } ?
-      validations = options.slice(*VALIDATIONS)
-      validates name, validations unless validations.empty?
+      validates name, validates unless validates.empty?
 
       @fields ||= []
       field_class = type.to_s.camelize.constantize
-      @fields.push(field_class.new(name, validations, options.except(*VALIDATIONS)))
+      @fields.push(field_class.new(name, validates, html_options))
     end
 
     # This is basically the name of the resource
@@ -120,9 +113,9 @@ class FormField
   attr_reader :name
   attr_reader :options
 
-  def initialize(name, validations, options)
+  def initialize(name, validations, html_options)
     @name = name
-    @options = options.merge(validations_to_attributes(validations))
+    @options = html_options.merge(validations_to_attributes(validations))
   end
 
   # Can be overwritten by child class for transforming to different type
