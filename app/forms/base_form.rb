@@ -11,6 +11,7 @@ class BaseForm
     def field(name, type, options = {})
       attr_accessor name
 
+      # TODO: Or introduce this as validates: { ... } ?
       validations = options.slice(*VALIDATIONS)
       validates name, validations unless validations.empty?
 
@@ -19,6 +20,8 @@ class BaseForm
       @fields.push(field_class.new(name, validations, options.except(*VALIDATIONS)))
     end
 
+    # This is basically the name of the resource
+    # We remove the Form from that name
     def model_name
       ActiveModel::Name.new(self, nil, name.gsub(/Form\z/, ""))
     end
@@ -57,6 +60,9 @@ class BaseForm
     params = clean_params(dirty_params)
     assign_attributes(params)
     return false unless valid?
+    # TODO: If this returns false, we need to provide errors
+    # Can we just overwrite errors to delegate to the object
+    # if there are no errors?
     update(to, params)
   end
 
@@ -128,6 +134,8 @@ class FormField
   def to_partial_path
     "forms/#{self.class.name.underscore}"
   end
+
+  # TODO: Maybe create a registry for the fields via the inherited method?
 
   private
 
