@@ -9,7 +9,7 @@ class BaseForm
       validates name, validates unless validates.empty?
 
       @fields ||= []
-      field_class = type.to_s.camelize.constantize
+      field_class = FormField.fetch(type)
       @fields.push(field_class.new(name, validates, html_options))
     end
 
@@ -110,6 +110,17 @@ class BaseForm
 end
 
 class FormField
+  class << self
+    def inherited(klass)
+      @children ||= {}
+      @children[klass.name.underscore.to_sym] = klass
+    end
+
+    def fetch(name)
+      (@children || {}).fetch(name)
+    end
+  end
+
   attr_reader :name
   attr_reader :options
 
@@ -127,8 +138,6 @@ class FormField
   def to_partial_path
     "forms/#{self.class.name.underscore}"
   end
-
-  # TODO: Maybe create a registry for the fields via the inherited method?
 
   private
 
