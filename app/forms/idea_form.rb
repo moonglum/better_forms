@@ -1,7 +1,4 @@
 class IdeaForm < BaseForm
-  # Maybe nicer? text_field :title, validates: { presence: true }
-  field :title, :text_field, validates: {
-    presence: true
-  }
-  field :body, :text_area
+  text_field :title, validates: { presence: true }
+  text_area :body
 end

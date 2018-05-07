@@ -19,7 +19,7 @@ class IdeasController < ApplicationController
 
   # GET /ideas/1/edit
   def edit
-    @idea_form.prefill_with(@idea.attributes)
+    @idea_form.prefill_with(@idea)
   end
 
   # POST /ideas

@@ -3,14 +3,16 @@ class BaseForm
   class << self
     attr_reader :fields
 
-    def field(name, type, validates: {}, html_options: {})
-      attr_accessor name
+    def method_missing(method_name, *args)
+      if respond_to_missing?(method_name)
+        add_field(method_name, *args)
+      else
+        super
+      end
+    end
 
-      validates name, validates unless validates.empty?
-
-      @fields ||= []
-      field_class = FormField.fetch(type)
-      @fields.push(field_class.new(name, validates, html_options))
+    def respond_to_missing?(field_type, _include_all = nil)
+      FormField.key?(field_type)
     end
 
     # This is basically the name of the resource
@@ -22,41 +24,51 @@ class BaseForm
     def i18n_scope
       :form
     end
+
+    private
+
+    def add_field(field_type, name, validates: {}, html_options: {})
+      field_class = FormField.fetch(field_type)
+
+      attribute name, field_class.type
+      validates name, validates unless validates.empty?
+
+      @fields ||= []
+      @fields.push(field_class.new(name, validates, html_options))
+    end
   end
 
-  include ActiveModel::AttributeAssignment
-  include ActiveModel::Validations
-  extend ActiveModel::Translation
-
-  delegate :fields, to: :class
+  include ActiveModel::Model
+  include ActiveModel::Attributes
 
   # Initialize the form, optionally providing a parameter for the form
   #
   # If you form is called FooForm, then the form will post to foo_path
   # If you provide a param, it will post to foo_path(param)
   def initialize(param: nil)
+    super()
     @param = param
   end
 
   # Prefill your form with a hash
   #
-  # This is useful for update forms
-  def prefill_with(attributes)
-    assign_attributes(attributes.slice(*fields.map { |field| field.name.to_s }))
+  # This is useful for update forms. It will ignore all attributes it doesn't know.
+  def prefill_with(hash)
+    assign_attributes(hash.slice(*attributes.keys))
   end
 
   # Apply parameters to your target object or objects
   #
   # This will first clean the parameters and check their validity
   # It will then call the update method, see below
-  def apply(dirty_params, to:)
-    params = clean_params(dirty_params)
-    assign_attributes(params)
+  def apply(params, to:)
+    clean_params = params.require(self.class.model_name.param_key).permit(*attributes.keys)
+    assign_attributes(clean_params)
     return false unless valid?
     # TODO: If this returns false, we need to provide errors
     # Can we just overwrite errors to delegate to the object
     # if there are no errors?
-    update(to, params)
+    update(to, attributes)
   end
 
   # Update the target object or objects
@@ -78,7 +90,7 @@ class BaseForm
         errors: errors,
         model_name: self.class.model_name,
         form: form,
-        fields: fields
+        fields: self.class.fields
       },
       layout: false
     )
@@ -94,45 +106,38 @@ class BaseForm
   def to_param
     @param
   end
-
-  # This is necessary for form_with
-  def to_model
-    self
-  end
-
-  private
-
-  def clean_params(params)
-    fields.each_with_object({}) do |field, result|
-      result[field.name] = field.transform(params[self.class.model_name.param_key])
-    end
-  end
 end
 
+# TODO: Figure out how to do compound fields
 class FormField
   class << self
+    delegate :fetch, :key?, to: :@children
+
     def inherited(klass)
-      @children ||= {}
       @children[klass.name.underscore.to_sym] = klass
     end
 
-    def fetch(name)
-      (@children || {}).fetch(name)
+    def type(assignment = nil)
+      if assignment
+        @type = assignment
+      else
+        @type || ActiveModel::Type::Value.new
+      end
     end
   end
 
+  @children = {}
+
   attr_reader :name
-  attr_reader :options
 
   def initialize(name, validations, html_options)
     @name = name
-    @options = html_options.merge(validations_to_attributes(validations))
+    @validations = validations
+    @html_options = html_options
   end
 
-  # Can be overwritten by child class for transforming to different type
-  # or to collect multiple fields into one value
-  def transform(params)
-    params[name]
+  def options
+    @html_options.merge(validations_to_attributes(@validations))
   end
 
   def to_partial_path
@@ -151,7 +156,13 @@ class FormField
 end
 
 class TextField < FormField
+  type :string
 end
 
 class TextArea < FormField
+  type :string
+end
+
+class NumberField < FormField
+  type :integer
 end
