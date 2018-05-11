@@ -45,6 +45,7 @@ class BaseForm
   include ActiveModel::Attributes
 
   attr_reader :id
+  delegate :model_name, :fields, to: :class
 
   # Initialize the form, optionally providing an id for the form
   #
@@ -67,7 +68,7 @@ class BaseForm
   # This will first clean the parameters and check their validity
   # It will then call the update method, see below
   def apply(params, to:)
-    assign_attributes(params.require(self.class.model_name.param_key).permit(*attributes.keys))
+    assign_attributes(params.require(model_name.param_key).permit(*attributes.keys))
     return false unless valid?
     # TODO: If this returns false, we need to provide errors
     # Can we just overwrite errors to delegate to the object
@@ -97,13 +98,13 @@ class BaseForm
   private
 
   def to_model_attributes
-    self.class.fields.each_with_object({}) do |field, result|
+    fields.each_with_object({}) do |field, result|
       result[field.name] = field.to_model_attribute(attributes)
     end
   end
 
   def from_model_attributes(hash)
-    self.class.fields.each_with_object({}) do |field, result|
+    fields.each_with_object({}) do |field, result|
       result.merge!(field.from_model_attributes(hash))
     end
   end

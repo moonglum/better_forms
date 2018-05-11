@@ -1,18 +1,18 @@
-<% if errors.any? %>
+<% if form_object.errors.any? %>
   <div id="error_explanation">
-    <h2><%= pluralize(errors.count, "error") %> prohibited this <%= model_name.human(count: 1) %> from being saved:</h2>
+    <h2><%= pluralize(form_object.errors.count, "error") %> prohibited this <%= form_object.model_name.human(count: 1) %> from being saved:</h2>
 
     <ul>
-    <% errors.full_messages.each do |message| %>
+    <% form_object.errors.full_messages.each do |message| %>
       <li><%= message %></li>
     <% end %>
     </ul>
   </div>
 <% end %>
 
-<% fields.each do |field| %>
+<% form_object.fields.each do |field| %>
   <div class="field">
-    <%= render field, form: form %>
+    <%= render(partial: field, as: :field, locals: { form: form }) %>
   </div>
 <% end %>
 
