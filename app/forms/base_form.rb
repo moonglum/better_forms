@@ -44,13 +44,15 @@ class BaseForm
   include ActiveModel::Model
   include ActiveModel::Attributes
 
-  # Initialize the form, optionally providing a parameter for the form
+  attr_reader :id
+
+  # Initialize the form, optionally providing an id for the form
   #
   # If you form is called FooForm, then the form will post to foo_path
-  # If you provide a param, it will post to foo_path(param)
-  def initialize(param: nil)
+  # If you provide an id, it will post to foo_path(id)
+  def initialize(id: nil)
     super()
-    @param = param
+    @id = id
   end
 
   # Prefill your form with a hash
@@ -87,14 +89,9 @@ class BaseForm
   end
 
   # This is necessary for form_with
-  # This is unfortunately named. It basically asks if the param should be used or not
+  # This is unfortunately named. It basically asks if the id should be used or not
   def persisted?
-    @param.present?
-  end
-
-  # This is necessary for form_with
-  def to_param
-    @param
+    id.present?
   end
 
   private

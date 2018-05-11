@@ -69,6 +69,6 @@ class IdeasController < ApplicationController
     end
 
     def set_idea_form
-      @idea_form = IdeaForm.new(param: params[:id])
+      @idea_form = IdeaForm.new(id: params[:id])
     end
 end
