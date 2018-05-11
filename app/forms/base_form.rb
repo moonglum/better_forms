@@ -81,20 +81,9 @@ class BaseForm
     target.update(params)
   end
 
-  # Render the form (this is called by the render_form helper)
-  #
-  # You need to provide the name of the view you want to use as
-  # the layout for your form
-  def render(form, layout:)
-    ApplicationController.new.render_to_string(
-      partial: "forms/#{layout}",
-      locals: {
-        errors: errors,
-        model_name: self.class.model_name,
-        form: form,
-        fields: self.class.fields
-      }
-    )
+  # TODO: Make this configurable per Form via a template method
+  def to_partial_path
+    "forms/default"
   end
 
   # This is necessary for form_with
