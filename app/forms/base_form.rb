@@ -87,14 +87,13 @@ class BaseForm
   # the layout for your form
   def render(form, layout:)
     ApplicationController.new.render_to_string(
-      "forms/#{layout}",
+      partial: "forms/#{layout}",
       locals: {
         errors: errors,
         model_name: self.class.model_name,
         form: form,
         fields: self.class.fields
-      },
-      layout: false
+      }
     )
   end
 
