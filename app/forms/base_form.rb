@@ -184,7 +184,7 @@ class FormField
   end
 
   def to_partial_path
-    "forms/#{self.class.name.underscore}"
+    "fields/#{self.class.name.underscore}"
   end
 
   private
