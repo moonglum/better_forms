@@ -27,14 +27,17 @@ class BaseForm
 
     private
 
-    def add_field(field_type, name, validates: {}, html_options: {})
+    def add_field(field_type, name, options = {})
       field_class = FormField.fetch(field_type)
+      field = field_class.new(name, options)
 
-      attribute name, field_class.type
-      validates name, validates unless validates.empty?
+      field.each_parameter do |parameter, type, validations|
+        attribute parameter, type
+        validates parameter, validations if validations.any?
+      end
 
       @fields ||= []
-      @fields.push(field_class.new(name, validates, html_options))
+      @fields.push(field)
     end
   end
 
@@ -54,7 +57,7 @@ class BaseForm
   #
   # This is useful for update forms. It will ignore all attributes it doesn't know.
   def prefill_with(hash)
-    assign_attributes(hash.slice(*attributes.keys))
+    assign_attributes(from_model_attributes(hash))
   end
 
   # Apply parameters to your target object or objects
@@ -62,13 +65,12 @@ class BaseForm
   # This will first clean the parameters and check their validity
   # It will then call the update method, see below
   def apply(params, to:)
-    clean_params = params.require(self.class.model_name.param_key).permit(*attributes.keys)
-    assign_attributes(clean_params)
+    assign_attributes(params.require(self.class.model_name.param_key).permit(*attributes.keys))
     return false unless valid?
     # TODO: If this returns false, we need to provide errors
     # Can we just overwrite errors to delegate to the object
     # if there are no errors?
-    update(to, attributes)
+    update(to, to_model_attributes)
   end
 
   # Update the target object or objects
@@ -106,9 +108,22 @@ class BaseForm
   def to_param
     @param
   end
+
+  private
+
+  def to_model_attributes
+    self.class.fields.each_with_object({}) do |field, result|
+      result[field.name] = field.to_model_attribute(attributes)
+    end
+  end
+
+  def from_model_attributes(hash)
+    self.class.fields.each_with_object({}) do |field, result|
+      result.merge!(field.from_model_attributes(hash))
+    end
+  end
 end
 
-# TODO: Figure out how to do compound fields
 class FormField
   class << self
     delegate :fetch, :key?, to: :@children
@@ -117,27 +132,55 @@ class FormField
       @children[klass.name.underscore.to_sym] = klass
     end
 
-    def type(assignment = nil)
-      if assignment
-        @type = assignment
-      else
-        @type || ActiveModel::Type::Value.new
-      end
+    def parameter(type)
+      @parameters = { nil => type }
+    end
+
+    def parameters(hash = nil)
+      return @parameters if hash.nil?
+
+      @parameters = hash
     end
   end
 
   @children = {}
 
-  attr_reader :name
-
-  def initialize(name, validations, html_options)
+  def initialize(name, options)
     @name = name
-    @validations = validations
-    @html_options = html_options
+    @options = options
   end
 
-  def options
-    @html_options.merge(validations_to_attributes(@validations))
+  def name(suffix = nil)
+    return @name if suffix.nil?
+    "#{@name}-#{suffix}"
+  end
+
+  def each_parameter
+    self.class.parameters.each do |suffix, type|
+      # TODO: All parameters share the same validations...
+      yield name(suffix), type, validations
+    end
+  end
+
+  # required, pattern, min, max, step, maxlength, disabled
+  # autocomplete, autofocus, placeholder
+  # Bootstrap: helptext
+  # TODO: All parameters share the same validations...
+  def html_options
+    @options
+  end
+
+  # Some validations may come from the field itself, e.g. a NumberField could add a numericality validation
+  def validations
+    options_to_validations(@options)
+  end
+
+  def to_model_attribute(hash)
+    hash[name.to_s]
+  end
+
+  def from_model_attributes(hash)
+    { name => hash[name.to_s] }
   end
 
   def to_partial_path
@@ -148,21 +191,54 @@ class FormField
 
   # TODO: Add missing validations:
   # acceptance, confirmation, exclusion, format, inclusion, length, numericality, absence
-  def validations_to_attributes(validations)
-    options = {}
-    options[:required] = true if validations[:presence]
-    options
+  def options_to_validations(options)
+    validations = {}
+    validations[:presence] = true if options[:required]
+    validations
   end
 end
 
 class TextField < FormField
-  type :string
+  parameter :string
 end
 
 class TextArea < FormField
-  type :string
+  parameter :string
 end
 
 class NumberField < FormField
-  type :integer
+  parameter :integer
 end
+
+# class CompoundDateField < FormField
+#   parameters year: :integer, month: :integer, day: :integer
+
+#   def to_model_attribute(params)
+#     Date.new(params[name(:year)], params[name(:month)], params[name(:day)])
+#   end
+
+#   def from_model_attributes(hash)
+#     {
+#       name(:year) => hash[name].year,
+#       name(:month) => hash[name].month,
+#       name(:day) => hash[name].day
+#     }
+#   end
+
+#   # TODO: What is the solution for this?
+#   def year_options
+#     (2015..2018).to_a
+#   end
+
+#   def month_options
+#     (1..12).to_a
+#   end
+
+#   def day_options
+#     (1..31).to_a
+#   end
+# end
+
+# class DecorativeElement < FormField
+#   # If you don't provide any parameters, this will be a decorative element
+# end
